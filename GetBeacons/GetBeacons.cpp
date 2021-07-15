@@ -10,9 +10,9 @@
 #include <wrl/event.h> // requerido por Callback()
 // Sin los .. usa cppwinrt
 #include <../winrt/windows.devices.bluetooth.h>
-#include <../winrt/windows.devices.bluetooth.advertisement.h>
 
 #include "Logger.hpp"
+#include "GetBeacons.h"
 
 using namespace std;
 // required Windows Runtime
@@ -23,40 +23,25 @@ using namespace Microsoft::WRL::Wrappers;
 using namespace ABI::Windows::Devices::Bluetooth::Advertisement;
 
 
-/*
-    https://stackoverflow.com/questions/39895191/getting-ble-beacons-in-c-windows-10-desktop-application
-*/
+// https://stackoverflow.com/questions/39895191/getting-ble-beacons-in-c-windows-10-desktop-application
+ 
+Logger logger = Logger();
 
- Logger logger = Logger();
+ HRESULT CallBackObject::AdvertisementRecived(IBluetoothLEAdvertisementWatcher* watcher, IBluetoothLEAdvertisementReceivedEventArgs* args)
+ {
+     BluetoothLEAdvertisementType type;
+     args->get_AdvertisementType(&type);
 
-int PrintError(unsigned int line, HRESULT hr)
-{
-    wprintf_s(L"ERROR: Line:%d HRESULT: 0x%X\n", line, hr);
-    return hr;
-}
+     UINT64 address;
+     args->get_BluetoothAddress(&address);
 
-struct Test 
-{
-    Test() {}
+     INT16 dbm;
+     args->get_RawSignalStrengthInDBm(&dbm);
 
-    Test(int i) {}
+     printf("addr = > %llX, DBm => %d, type => %d\n", address, dbm, type);
 
-    HRESULT AdvertisementRecived(IBluetoothLEAdvertisementWatcher* watcher,IBluetoothLEAdvertisementReceivedEventArgs* args) {
-
-        BluetoothLEAdvertisementType type;
-        args->get_AdvertisementType(&type);
-        
-        UINT64 address;
-        args->get_BluetoothAddress(&address);
-        
-        INT16 dbm;
-        args->get_RawSignalStrengthInDBm(&dbm);
-
-        printf("addr = > %llX, DBm => %d, type => %d\n", address, dbm, type);
-
-        return S_OK;
-    }
-};
+     return S_OK;
+ }
 
 int main()
 {
@@ -93,20 +78,21 @@ int main()
         return -1;
     }
    
-    Test test;
+    struct CallBackObject object;
     ComPtr<ITypedEventHandler<BluetoothLEAdvertisementWatcher*, BluetoothLEAdvertisementReceivedEventArgs*>> handler;
 
     handler = Callback<ITypedEventHandler<BluetoothLEAdvertisementWatcher*, BluetoothLEAdvertisementReceivedEventArgs*> >
         (std::bind(
-            &Test::AdvertisementRecived,
-            &test,
+            &CallBackObject::AdvertisementRecived,
+            &object,
             placeholders::_1,
             placeholders::_2
         ));
         
     hr = bleWatcher->add_Received(handler.Get(), watcherToken);
     if (FAILED(hr)) {
-        return PrintError(__LINE__, hr);
+        logger.Log(__LINE__, std::string("Add received callback error"));
+        return -1;
     }
 
     bleWatcher->Start();

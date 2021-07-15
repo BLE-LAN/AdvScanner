@@ -13,10 +13,11 @@ void Logger::Log(unsigned long line, const std::string& message)
 {
 #ifdef DEBUG 
     // Log to Ouput window
-    std::string output = "[" + currentDateTime() + "] : " + message;
+    std::string output = "[" + currentDateTime() + "][L:" + std::to_string(line) + "] -> " + message;
     std::cout << output << "\n";
 #else
     // Log to Ouput window
+    // TODO
     std::log << "TODO" << "\n";
 
 #endif
