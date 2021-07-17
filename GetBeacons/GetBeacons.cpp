@@ -29,18 +29,67 @@ Logger logger = Logger();
 
  HRESULT CallBackObject::AdvertisementRecived(IBluetoothLEAdvertisementWatcher* watcher, IBluetoothLEAdvertisementReceivedEventArgs* args)
  {
-     BluetoothLEAdvertisementType type;
-     args->get_AdvertisementType(&type);
+     /*
+        address : identificar el dispositivo
+        timestamp : tiempo desde la última vez que se actualiza si poosición
+        Strength y transmitpowerlevel: para calcular la distancia 
+        
+     */
+     ComPtr<IBluetoothLEAdvertisement> bleAdvert;
+     args->get_Advertisement(&bleAdvert);
 
-     UINT64 address;
-     args->get_BluetoothAddress(&address);
+     
 
-     INT16 dbm;
-     args->get_RawSignalStrengthInDBm(&dbm);
 
-     printf("addr = > %llX, DBm => %d, type => %d\n", address, dbm, type);
+     ComPtr <ABI::Windows::Foundation::Collections::IVector<ABI::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementDataSection*>> vecData;
+     HRESULT hr = bleAdvert->get_DataSections(&vecData);
 
-     return S_OK;
+     if (FAILED(hr))
+     {
+         logger.Log(__LINE__, "get_DataSections failed");
+     }
+     else
+     {
+         char buff[256] = { 0 };
+         UINT count = 0;
+         hr = vecData->get_Size(&count);
+
+         logger.Log(__LINE__, "Datasections Count " + std::to_string(count));
+
+         if (SUCCEEDED(hr))
+         {
+             for (UINT i = 0; i < count; ++i)
+             {
+                 ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> ds;
+
+                 hr = vecData->GetAt(i, &ds);
+                 if (SUCCEEDED(hr))
+                 {
+                     ComPtr<ABI::Windows::Storage::Streams::IBuffer> ibuf;
+                     BYTE datatype = 0;
+
+                     hr = ds->get_DataType(&datatype);
+                     memset(buff, 0, sizeof(buff));
+                     sprintf_s(buff, sizeof(buff), "%d", datatype);
+                     printf("Data Type: %s ", buff);
+
+                     hr = ds->get_Data(&ibuf);
+                 }
+             }
+
+         }
+     }
+
+
+         UINT64 address;
+         args->get_BluetoothAddress(&address);
+
+         INT16 dbm;
+         args->get_RawSignalStrengthInDBm(&dbm);
+
+         printf("addr = > %llX, DBm => %d\n", address, dbm);
+
+         return S_OK;
  }
 
 int main()
