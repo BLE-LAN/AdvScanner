@@ -143,10 +143,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BeaconParser.cpp" />
     <ClCompile Include="GetBeacons.cpp" />
     <ClCompile Include="Logger.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ADVToJSON.h" />
     <ClInclude Include="GetBeacons.h" />
     <ClInclude Include="Logger.hpp" />
   </ItemGroup>
