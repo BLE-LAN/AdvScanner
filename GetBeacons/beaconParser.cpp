@@ -4,21 +4,6 @@
     ## IBluetoothLEAdvertisementReceivedEventArgs => JSON
     ##########################
 
-    INT16 RawSignalStrengthInDBm => int
-
-    UINT64 BluetoothAddress => String
-        XX:XX:XX:XX:XX:XX
-
-    BluetoothLEAdvertisementType AdvertisementType => Enum de unsigned int
-        ConnectableDirected	        1
-        ConnectableUndirected	    0
-        Extended	                5
-        NonConnectableUndirected	3
-        ScannableUndirected	        2
-        ScanResponse	            4
-
-     ABI::Windows::Foundation::DateTime* => string del timestamp
-
     IBluetoothLEAdvertisement Advertisement
         DataTypes (los que se han podido testar)
             flags                       0x01
@@ -80,32 +65,28 @@ bool ADVToJSON::Parse(IBluetoothLEAdvertisementReceivedEventArgs* args)
         Parse values not stored in the data section
     */
     
+    // AD tpye
     BluetoothLEAdvertisementType advtype;
     args->get_AdvertisementType(&advtype);
+    
+    Value v_advtype;
+    v_advtype.SetInt(advtype);
+    document.AddMember("advtype", v_advtype, document.GetAllocator());
 
     // RawSignalStrengthInDBm
     INT16 dbm;
     args->get_RawSignalStrengthInDBm(&dbm);
-
     document["dbm"] = dbm;
 
 
-    /* timestamp
-    DateTime datetime;
-    args->get_Timestamp(&datetime);
-    struct tm newtime;
-    time_t now = time(0);
-    localtime_s(&newtime, &now);
-    std::ostringstream oss;
-    oss << std::put_time(&newtime, "%d-%m-%Y %H-%M-%S");
-    std::string timestamp = oss.str();
-    char* cstr = new char[timestamp.length() + 1];
-    strncpy_s(cstr, timestamp.length() + 1, timestamp.c_str(), timestamp.length());
+    // timestamp
+    time_t result = time(NULL);
+    char dateBuff[26];
+    ctime_s(dateBuff, sizeof dateBuff, &result);
 
     Value v_timestamp;
-    v_timestamp.SetString(cstr, (SizeType)timestamp.length()+1, document.GetAllocator());
+    v_timestamp.SetString(dateBuff, sizeof(dateBuff), document.GetAllocator());
     document.AddMember("timestamp", v_timestamp, document.GetAllocator());
-    */
 
     // address
     UINT64 bluetoothAddress;
