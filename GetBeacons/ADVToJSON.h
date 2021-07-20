@@ -5,5 +5,6 @@ using namespace ABI::Windows::Devices::Bluetooth::Advertisement;
 
 namespace ADVToJSON {
 	bool Parse(IBluetoothLEAdvertisementReceivedEventArgs* args);
+	void BluetoothAddressToString(UINT8 bda[], UINT64* btha);
 }
 
