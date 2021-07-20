@@ -53,18 +53,18 @@ bool ADVToJSON::Parse(IBluetoothLEAdvertisementReceivedEventArgs* args)
 
     for (auto i = 0; i < countDataSections; ++i)
     {
-        ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> dataSection;
-        hr = vecData->GetAt(i, &dataSection);
+        ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> significantPart;
+        hr = vecData->GetAt(i, &significantPart);
 
         ComPtr<ABI::Windows::Storage::Streams::IBuffer> ibuf;
         BYTE datatype = 0;
 
-        hr = dataSection->get_DataType(&datatype);
+        hr = significantPart->get_DataType(&datatype);
         memset(auxBuff, 0, sizeof(auxBuff));
         sprintf_s(auxBuff, sizeof(auxBuff), "%d", datatype);
         printf("Data Type: %s ", auxBuff);
 
-        hr = dataSection->get_Data(&ibuf);
+        hr = significantPart->get_Data(&ibuf);
     }
 
     UINT64 address;
