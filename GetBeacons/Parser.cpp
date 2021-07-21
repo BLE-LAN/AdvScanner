@@ -14,16 +14,8 @@
 
 
 #include <iostream>
-#include <stdio.h>
-#include <sstream>
-#include <iomanip>
-#include <string.h>
 
-#include <Windows.h>
-#include <Windows.Foundation.h>
-#include <wrl/wrappers/corewrappers.h>
 #include <wrl/client.h>
-#include <../winrt/windows.devices.bluetooth.h>
 
 #include "Parser.h"
 #include "../rapidjson/include/rapidjson/document.h"
@@ -32,16 +24,15 @@
 
 
 using namespace std;
-using namespace ABI::Windows::Foundation;
 using namespace Microsoft::WRL;
 using namespace rapidjson;
 
 #define BD_ADDR_LEN 6
 
 
-void Parser::BluetoothAddressToString(UINT8 bda[], UINT64* btha)
+void addressGetBytesInBigEndian(UINT8 bda[], UINT64* bluetoothAddress)
 {
-    BYTE* p = (BYTE*)btha;
+    BYTE* p = (BYTE*)bluetoothAddress;
     UINT8 *pbda = bda + BD_ADDR_LEN - 1; 
 
     for (size_t i = 0; i < BD_ADDR_LEN; i++) 
@@ -50,36 +41,43 @@ void Parser::BluetoothAddressToString(UINT8 bda[], UINT64* btha)
     }
 }
 
-bool Parser::Parse(IBluetoothLEAdvertisementReceivedEventArgs* args) 
-{
-    const char json[] = " { \"dbm\" : \"-1\"} ";
+void addressParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& document) {
+    UINT64 bluetoothAddress;
+    args->get_BluetoothAddress(&bluetoothAddress);
 
-    Document document;
-    //document.SetObject();
-    document.Parse(json);
+    UINT8 bda[BD_ADDR_LEN];
+    char buf[64] = { 0 };
 
-    ComPtr<IBluetoothLEAdvertisement> bleAdvert;
-    args->get_Advertisement(&bleAdvert);
+    addressGetBytesInBigEndian(bda, &bluetoothAddress);
 
-    /*
-        Parse values not stored in the data section
-    */
-    
-    // AD tpye
+    // Formar the string into a buffer
+    unsigned int size = sprintf_s(buf, sizeof(buf) / sizeof(buf[0]), "%02x:%02x:%02x:%02x:%02x:%02x", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
+
+    Value v_address;
+    v_address.SetString(buf, size, document.GetAllocator());
+    document.AddMember("address", v_address, document.GetAllocator());
+}
+
+void adtypeParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& document){
     BluetoothLEAdvertisementType advtype;
     args->get_AdvertisementType(&advtype);
-    
+
     Value v_advtype;
     v_advtype.SetInt(advtype);
     document.AddMember("advtype", v_advtype, document.GetAllocator());
+}
 
-    // RawSignalStrengthInDBm
+void rawsignalParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& document) {
     INT16 dbm;
     args->get_RawSignalStrengthInDBm(&dbm);
-    document["dbm"] = dbm;
 
+    Value v_dbm;
+    v_dbm.SetInt(dbm);
+    document.AddMember("dbm", v_dbm, document.GetAllocator());
+}
 
-    // timestamp
+void timestampParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& document) 
+{
     time_t result = time(NULL);
     char dateBuff[26];
     ctime_s(dateBuff, sizeof dateBuff, &result);
@@ -87,36 +85,35 @@ bool Parser::Parse(IBluetoothLEAdvertisementReceivedEventArgs* args)
     Value v_timestamp;
     v_timestamp.SetString(dateBuff, sizeof(dateBuff), document.GetAllocator());
     document.AddMember("timestamp", v_timestamp, document.GetAllocator());
+}
 
-    // address
-    UINT64 bluetoothAddress;
-    args->get_BluetoothAddress(&bluetoothAddress);
-
-    UINT8 bda[BD_ADDR_LEN];
-    char buf[64] = { 0 };
-
-    Parser::BluetoothAddressToString(bda, &bluetoothAddress);
-    unsigned int size = sprintf_s(buf, sizeof(buf) / sizeof(buf[0]), "%02x:%02x:%02x:%02x:%02x:%02x", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
-
-    Value v_address;
-    v_address.SetString(buf, size, document.GetAllocator());
-    document.AddMember("address", v_address, document.GetAllocator());
+bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args) 
+{
+    Document document;
+    document.SetObject();
 
     /*
-        Obtener el string del json y guardarlo en un fichero
+        Values not stored in the data section
     */
 
-    StringBuffer buffer;
-    Writer<StringBuffer> writer(buffer);
-    document.Accept(writer);
-    std::cout << buffer.GetString() << std::endl;
+    addressParse(args, document);
+
+    adtypeParse(args, document);
+
+    rawsignalParse(args, document);
+
+    timestampParse(args, document);
     
     /*
         Data Section
         los dataTypes no 'conocidos' tendrá como nombre el valor numérico del dataType y valor los bytes
     */
 
-    /*ComPtr <ABI::Windows::Foundation::Collections::IVector<ABI::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementDataSection*>> vecData;
+    /*
+     ComPtr<IBluetoothLEAdvertisement> bleAdvert;
+    args->get_Advertisement(&bleAdvert);
+
+    ComPtr <ABI::Windows::Foundation::Collections::IVector<ABI::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementDataSection*>> vecData;
     HRESULT hr = bleAdvert->get_DataSections(&vecData);
 
     char auxBuff[256] = { 0 };
@@ -141,6 +138,10 @@ bool Parser::Parse(IBluetoothLEAdvertisementReceivedEventArgs* args)
     }*/
 
 
+    StringBuffer buffer;
+    Writer<StringBuffer> writer(buffer);
+    document.Accept(writer);
+    std::cout << buffer.GetString() << std::endl;
 
     return true;
 }

@@ -3,10 +3,7 @@
 
 #include <string>
 
-class Logger 
+namespace Logger 
 {
-public:
-	void Log(unsigned long line, const std::string& message);
-
-	std::string currentDateTime();
+	void Log(std::string source, int logType, std::string message);
 };

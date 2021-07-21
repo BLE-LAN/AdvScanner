@@ -1,13 +1,12 @@
 
 
 #include <iostream>
-#include <stdio.h>
 #include <functional>
 // required Windows Runtime
 #include <Windows.Foundation.h>
 #include <wrl/wrappers/corewrappers.h>
 #include <wrl/client.h>
-#include <wrl/event.h> // requerido por Callback()
+#include <wrl/event.h>
 // Sin los .. usa cppwinrt
 #include <../winrt/windows.devices.bluetooth.h>
 
@@ -16,20 +15,17 @@
 #include "Watcher.h"
 
 using namespace std;
-// required Windows Runtime
 using namespace ABI::Windows::Foundation;
 using namespace Microsoft::WRL;
 using namespace Microsoft::WRL::Wrappers;
 
-// https://stackoverflow.com/questions/39895191/getting-ble-beacons-in-c-windows-10-desktop-application
- 
-Logger logger = Logger();
+#define error(message) Logger::Log("WATCHER", 1, message)
 
  HRESULT Watcher::CallBackObject::AdvertisementRecived(IBluetoothLEAdvertisementWatcher* watcher, IBluetoothLEAdvertisementReceivedEventArgs* args)
  {
-     if (!Parser::Parse(args)) 
+     if (!Parser::Parser(args))
      {
-         logger.Log(__LINE__, std::string("AdvertisementReceivedEventArgs parse error"));
+         error("EventArgs no se ha podido parsear");
      }
      return S_OK;
  }
@@ -41,14 +37,14 @@ int Watcher::StartWatcher()
 
     RoInitializeWrapper initialize(RO_INIT_MULTITHREADED);
     if (FAILED(initialize)) {
-        logger.Log(__LINE__, std::string("RoInitializeWrapper failed"));
+        error("RoInitializeWrapper failed");
         return -1;
     }
 
     ComPtr<IBluetoothLEAdvertisementWatcherFactory> bleAdvWatcherFactory;
     hr = GetActivationFactory(HStringReference(RuntimeClass_Windows_Devices_Bluetooth_Advertisement_BluetoothLEAdvertisementWatcher).Get(), &bleAdvWatcherFactory);
     if (FAILED(hr)) {
-        logger.Log(__LINE__, std::string("GetActivationFactory error"));
+        error("GetActivationFactory failed");
         return -1;
     }
 
@@ -59,13 +55,13 @@ int Watcher::StartWatcher()
     
     hr = RoActivateInstance(class_id_filter.Get(), reinterpret_cast<IInspectable**>(bleFilter.GetAddressOf()));
     if (FAILED(hr)) {
-        logger.Log(__LINE__, std::string("RoActivateInstance error"));
+        error("RoActivateInstance error");
         return -1;
     }
     
     hr = bleAdvWatcherFactory->Create(bleFilter.Get(), bleWatcher.GetAddressOf());
     if (bleWatcher == NULL || (FAILED(hr))) {
-        logger.Log(__LINE__, std::string("Create Watcher error"));
+        error("Create Watcher error");
         return -1;
     }
    
@@ -82,7 +78,7 @@ int Watcher::StartWatcher()
         
     hr = bleWatcher->add_Received(handler.Get(), watcherToken);
     if (FAILED(hr)) {
-        logger.Log(__LINE__, std::string("Add received callback error"));
+        error("Add received callback error");
         return -1;
     }
 

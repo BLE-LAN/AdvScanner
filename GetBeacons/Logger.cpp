@@ -7,13 +7,32 @@
 #include <sstream>
 #include <windows.h>
 
-void Logger::Log(unsigned long line, const std::string& message)
+/*
+    Console ouput logs.
+    Format:
+        [SOURCE][INFO/ERROR] : text
+        info -> green
+        error -> red
+*/
+
+
+void setColor()
 {
-    std::string output = "[" + currentDateTime() + "][L:" + std::to_string(line) + "] -> " + message;
-    std::cout << output << "\n";
+
 }
 
-std::string Logger::currentDateTime() 
+void Logger::Log(std::string source, int logType, std::string message)
+{    
+    if (logType == 0) 
+    {
+        std::clog << "[" + source + "][INFO] : " + message << std::endl;
+    }
+    else {
+        std::cerr << "[" + source + "][ERROR] : " + message << std::endl;
+    }
+}
+
+/*std::string Logger::currentDateTime()
 {
     struct tm newtime;
     time_t now = time(0);
@@ -23,4 +42,4 @@ std::string Logger::currentDateTime()
     oss << std::put_time(&newtime, "%d-%m-%Y %H-%M-%S");
     
     return oss.str();
-}
+}*/
