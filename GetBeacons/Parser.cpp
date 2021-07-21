@@ -25,7 +25,7 @@
 #include <wrl/client.h>
 #include <../winrt/windows.devices.bluetooth.h>
 
-#include "ADVToJSON.h"
+#include "Parser.h"
 #include "../rapidjson/include/rapidjson/document.h"
 #include "../rapidjson/include/rapidjson/writer.h"
 #include "../rapidjson/include/rapidjson/stringbuffer.h"
@@ -36,10 +36,10 @@ using namespace ABI::Windows::Foundation;
 using namespace Microsoft::WRL;
 using namespace rapidjson;
 
-#define BD_ADDR_LEN     6
+#define BD_ADDR_LEN 6
 
 
-void ADVToJSON::BluetoothAddressToString(UINT8 bda[], UINT64* btha)
+void Parser::BluetoothAddressToString(UINT8 bda[], UINT64* btha)
 {
     BYTE* p = (BYTE*)btha;
     UINT8 *pbda = bda + BD_ADDR_LEN - 1; 
@@ -50,7 +50,7 @@ void ADVToJSON::BluetoothAddressToString(UINT8 bda[], UINT64* btha)
     }
 }
 
-bool ADVToJSON::Parse(IBluetoothLEAdvertisementReceivedEventArgs* args) 
+bool Parser::Parse(IBluetoothLEAdvertisementReceivedEventArgs* args) 
 {
     const char json[] = " { \"dbm\" : \"-1\"} ";
 
@@ -95,7 +95,7 @@ bool ADVToJSON::Parse(IBluetoothLEAdvertisementReceivedEventArgs* args)
     UINT8 bda[BD_ADDR_LEN];
     char buf[64] = { 0 };
 
-    ADVToJSON::BluetoothAddressToString(bda, &bluetoothAddress);
+    Parser::BluetoothAddressToString(bda, &bluetoothAddress);
     unsigned int size = sprintf_s(buf, sizeof(buf) / sizeof(buf[0]), "%02x:%02x:%02x:%02x:%02x:%02x", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
 
     Value v_address;

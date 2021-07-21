@@ -12,8 +12,8 @@
 #include <../winrt/windows.devices.bluetooth.h>
 
 #include "Logger.hpp"
-#include "ADVToJSON.h"
-#include "GetBeacons.h"
+#include "Parser.h"
+#include "Watcher.h"
 
 using namespace std;
 // required Windows Runtime
@@ -25,16 +25,16 @@ using namespace Microsoft::WRL::Wrappers;
  
 Logger logger = Logger();
 
- HRESULT CallBackObject::AdvertisementRecived(IBluetoothLEAdvertisementWatcher* watcher, IBluetoothLEAdvertisementReceivedEventArgs* args)
+ HRESULT Watcher::CallBackObject::AdvertisementRecived(IBluetoothLEAdvertisementWatcher* watcher, IBluetoothLEAdvertisementReceivedEventArgs* args)
  {
-     if (!ADVToJSON::Parse(args)) 
+     if (!Parser::Parse(args)) 
      {
          logger.Log(__LINE__, std::string("AdvertisementReceivedEventArgs parse error"));
      }
      return S_OK;
  }
 
-int main()
+int Watcher::StartWatcher()
 {
     EventRegistrationToken* watcherToken = new EventRegistrationToken();
     HRESULT hr;
@@ -88,7 +88,7 @@ int main()
 
     bleWatcher->Start();
 
-    while (1) {
+    while (true) {
         Sleep(1000);
     }
 }

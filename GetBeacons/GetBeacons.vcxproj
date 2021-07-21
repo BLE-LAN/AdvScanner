@@ -143,13 +143,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BeaconParser.cpp" />
-    <ClCompile Include="GetBeacons.cpp" />
+    <ClCompile Include="Parser.cpp" />
+    <ClCompile Include="Watcher.cpp" />
     <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ADVToJSON.h" />
-    <ClInclude Include="GetBeacons.h" />
+    <ClInclude Include="Parser.h" />
+    <ClInclude Include="Watcher.h" />
     <ClInclude Include="Logger.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
