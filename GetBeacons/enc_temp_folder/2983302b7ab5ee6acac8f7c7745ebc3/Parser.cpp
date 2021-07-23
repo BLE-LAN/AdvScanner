@@ -181,11 +181,16 @@ bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args)
     /*
         Data Section
     */
+
     // get_Flags 0x01
     // get_ManufacturerData 0xff
 
     ComPtr<IBluetoothLEAdvertisement> bleAdvert;
     args->get_Advertisement(&bleAdvert);
+
+    //localNameParse(bleAdvert, document);
+
+    
 
     HRESULT hr;
 
@@ -229,4 +234,7 @@ void UuidToString(LPWSTR buffer, size_t buffer_size, GUID* uuid)
         uuid->Data3, uuid->Data4[0], uuid->Data4[1], uuid->Data4[2], uuid->Data4[3],
         uuid->Data4[4], uuid->Data4[5], uuid->Data4[6], uuid->Data4[7]);
 }*/
+
+
+
 
