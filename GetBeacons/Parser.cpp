@@ -24,12 +24,15 @@
 #include "../rapidjson/include/rapidjson/writer.h"
 #include "../rapidjson/include/rapidjson/stringbuffer.h"
 
-
+#include <windows.storage.h>
+#include <windows.storage.streams.h>
+#include <Robuffer.h>
 
 using namespace std;
 using namespace Microsoft::WRL;
 using namespace rapidjson;
 using namespace Microsoft::WRL::Wrappers;
+using namespace ABI::Windows::Storage::Streams;
 
 
 char _bluetoothLEAdvertisementStrings[6][27] = {
@@ -149,7 +152,50 @@ void servicesuidParse(ComPtr<IBluetoothLEAdvertisement> bleAdvert, Document& doc
     document.AddMember("uuids", v_array, document.GetAllocator());
 }
 
-void dataTypeParse(BYTE& id, ComPtr<IBluetoothLEAdvertisement> bleAdvert, Document& document)
+void unknowdataParse(
+    ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> dataSection, 
+    Document& document)
+{
+    char buff[256] = { 0 };
+
+    ComPtr<ABI::Windows::Storage::Streams::IBuffer> ibuf;
+    BYTE datatype = 0;
+
+    dataSection->get_DataType(&datatype);
+    memset(buff, 0, sizeof(buff));
+    sprintf_s(buff, sizeof(buff), "%d", datatype);
+    printf("unknow %d -> ", datatype);
+
+    dataSection->get_Data(&ibuf);
+
+    Microsoft::WRL::ComPtr<Windows::Storage::Streams::IBufferByteAccess> pBufferByteAccess;
+    ibuf.As(&pBufferByteAccess);
+
+    // Get pointer to pixel bytes
+    BYTE* pdatabuf = nullptr;
+    pBufferByteAccess->Buffer(&pdatabuf);
+
+    memset(buff, 0, sizeof(buff));
+
+    UINT32 length = 0;
+
+    ibuf->get_Length(&length);
+
+    printf("Length %d", length);
+
+    for (UINT32 i = 0; i < length; ++i)
+    {
+        sprintf_s(buff + (char)3 * (char)i, sizeof(buff) - (char)3 * (char)i, "%02x ", *(pdatabuf + i));
+    }
+
+    printf("%s\n", buff);
+}
+
+void dataTypeParse(
+    BYTE& id, 
+    ComPtr<IBluetoothLEAdvertisement> bleAdvert, 
+    ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> adData, 
+    Document& document)
 {
     switch(id){
     case 0x09:
@@ -158,6 +204,8 @@ void dataTypeParse(BYTE& id, ComPtr<IBluetoothLEAdvertisement> bleAdvert, Docume
     case 0x03:
         servicesuidParse(bleAdvert, document);
         break;
+    default:
+        unknowdataParse(adData, document);
     }
 }
 
@@ -169,7 +217,6 @@ bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args)
     /*
         Values not stored in the data section
     */
-
     addressParse(args, document);
 
     adtypeParse(args, document);
@@ -181,36 +228,26 @@ bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args)
     /*
         Data Section
     */
-    // get_Flags 0x01
-    // get_ManufacturerData 0xff
-
     ComPtr<IBluetoothLEAdvertisement> bleAdvert;
     args->get_Advertisement(&bleAdvert);
 
-    HRESULT hr;
-
     ComPtr <ABI::Windows::Foundation::Collections::IVector<ABI::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementDataSection*>> vecData;
-     hr = bleAdvert->get_DataSections(&vecData);
+    bleAdvert->get_DataSections(&vecData);
 
-    char auxBuff[256] = { 0 };
     unsigned int countDataSections = 0;
-    hr = vecData->get_Size(&countDataSections);
+    vecData->get_Size(&countDataSections);
 
     for (unsigned int i = 0; i < countDataSections; ++i)
     {
         ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> significantPart;
-        hr = vecData->GetAt(i, &significantPart);
+        vecData->GetAt(i, &significantPart);
 
         ComPtr<ABI::Windows::Storage::Streams::IBuffer> ibuf;
         
-        BYTE datatype = 0;
-        hr = significantPart->get_DataType(&datatype);
+        BYTE adType = 0;
+        significantPart->get_DataType(&adType);
 
-        memset(auxBuff, 0, sizeof(auxBuff));
-        sprintf_s(auxBuff, sizeof(auxBuff), "%X", datatype);
-        printf("type: %s ", auxBuff);
-
-        dataTypeParse(datatype, bleAdvert, document);
+        dataTypeParse(adType, bleAdvert, significantPart, document);
     }
 
     StringBuffer buffer;
