@@ -152,10 +152,24 @@ void servicesuidParse(ComPtr<IBluetoothLEAdvertisement> bleAdvert, Document& doc
     document.AddMember("uuids", v_array, document.GetAllocator());
 }
 
+/*
+    "unkowns":[
+        {
+            "type":"0x00",
+            “raw”:"57 01 02 ff"
+        },
+        ...
+    ]
+*/
 void unknowdataParse(
     ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> dataSection, 
-    Document& document)
+    Document& document,
+    rapidjson::Value& unkowns)
 {
+    rapidjson::Value v_object(rapidjson::Type::kObjectType);
+    rapidjson::Value v_type(rapidjson::Type::kStringType);
+    rapidjson::Value v_raw(rapidjson::Type::kStringType);
+
     char buff[256] = { 0 };
 
     ComPtr<ABI::Windows::Storage::Streams::IBuffer> ibuf;
@@ -164,14 +178,16 @@ void unknowdataParse(
     dataSection->get_DataType(&datatype);
     memset(buff, 0, sizeof(buff));
     sprintf_s(buff, sizeof(buff), "%d", datatype);
-    printf("unknow %d -> ", datatype);
+    //printf("\nunknow %d -> ", datatype);
+
+    // set datatype value in hex format
+    v_type.SetString(buff, strlen(buff), document.GetAllocator());
 
     dataSection->get_Data(&ibuf);
 
     Microsoft::WRL::ComPtr<Windows::Storage::Streams::IBufferByteAccess> pBufferByteAccess;
     ibuf.As(&pBufferByteAccess);
 
-    // Get pointer to pixel bytes
     BYTE* pdatabuf = nullptr;
     pBufferByteAccess->Buffer(&pdatabuf);
 
@@ -181,21 +197,32 @@ void unknowdataParse(
 
     ibuf->get_Length(&length);
 
-    printf("Length %d", length);
+    printf("length -> %d", length);
 
     for (UINT32 i = 0; i < length; ++i)
     {
-        sprintf_s(buff + (char)3 * (char)i, sizeof(buff) - (char)3 * (char)i, "%02x ", *(pdatabuf + i));
+        sprintf_s(buff + (char)3 * i, sizeof(buff) - 3 * i, "%02x ", *(pdatabuf + i));
     }
 
-    printf("%s\n", buff);
+    //printf(" bytes -> %s", buff);
+
+    // set raw value
+    v_raw.SetString(buff, strlen(buff) - 1, document.GetAllocator());
+
+
+    // add values in the object
+    v_object.AddMember("type", v_type, document.GetAllocator());
+    v_object.AddMember("raw", v_raw, document.GetAllocator());
+    // push object
+    unkowns.PushBack(v_object, document.GetAllocator());
 }
 
 void dataTypeParse(
     BYTE& id, 
     ComPtr<IBluetoothLEAdvertisement> bleAdvert, 
     ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> adData, 
-    Document& document)
+    Document& document,
+    rapidjson::Value& unkows)
 {
     switch(id){
     case 0x09:
@@ -205,7 +232,7 @@ void dataTypeParse(
         servicesuidParse(bleAdvert, document);
         break;
     default:
-        unknowdataParse(adData, document);
+        unknowdataParse(adData, document, unkows);
     }
 }
 
@@ -237,6 +264,9 @@ bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args)
     unsigned int countDataSections = 0;
     vecData->get_Size(&countDataSections);
 
+    // unkown data types arrays
+    rapidjson::Value v_unknows(rapidjson::Type::kArrayType);
+
     for (unsigned int i = 0; i < countDataSections; ++i)
     {
         ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> significantPart;
@@ -247,8 +277,11 @@ bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args)
         BYTE adType = 0;
         significantPart->get_DataType(&adType);
 
-        dataTypeParse(adType, bleAdvert, significantPart, document);
+        dataTypeParse(adType, bleAdvert, significantPart, document, v_unknows);
     }
+
+    // add unkowns array to the document
+    document.AddMember("unkowns", v_unknows, document.GetAllocator());
 
     StringBuffer buffer;
     Writer<StringBuffer> writer(buffer);
