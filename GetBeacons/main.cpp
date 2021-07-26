@@ -15,7 +15,11 @@ struct Menu_Option
 
 void Process_Selection_One() 
 {
-    Watcher::Run(1000 * 10);
+    while(true) 
+    {
+        Watcher::Run(1000 * 10);
+        Sleep(1000 * 20);
+    }
 }
 
 int main()

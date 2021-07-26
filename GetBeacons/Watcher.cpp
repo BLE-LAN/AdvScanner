@@ -46,9 +46,9 @@ FILE* _FILEPTR;
 
  void Watcher::Run(int miliseconds)
  {
-     Watcher::CreateFileOutput();
+    Watcher::CreateFileOutput();
 
-     Watcher::WatchADV(miliseconds);
+    Watcher::WatchADV(miliseconds);
 
     if (_FILEPTR != NULL) fclose(_FILEPTR);
  }
