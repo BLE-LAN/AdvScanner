@@ -11,7 +11,11 @@ namespace Watcher {
         HRESULT AdvertisementRecived(IBluetoothLEAdvertisementWatcher* watcher, IBluetoothLEAdvertisementReceivedEventArgs* args);
     };
 
-    int StartWatcher();
+    void Run(int miliseconds);
+    
+    int WatchADV(int miliseconds);
+
+    void CreateFileOutput();
 }
 
 

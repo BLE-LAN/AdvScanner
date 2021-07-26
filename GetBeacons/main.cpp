@@ -4,6 +4,8 @@
 
 #include "Watcher.h"
 
+#include <windows.h>
+
 struct Menu_Option
 {
     char choice;
@@ -11,8 +13,9 @@ struct Menu_Option
     void (*procesing_function)();
 };
 
-void Process_Selection_One() {
-    Watcher::StartWatcher();
+void Process_Selection_One() 
+{
+    Watcher::Run(1000 * 10);
 }
 
 int main()

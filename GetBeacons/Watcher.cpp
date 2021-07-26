@@ -2,6 +2,9 @@
 
 #include <iostream>
 #include <functional>
+#include <windows.h>
+#include <stdio.h>
+#include <thread>
 // required Windows Runtime
 #include <Windows.Foundation.h>
 #include <wrl/wrappers/corewrappers.h>
@@ -21,16 +24,51 @@ using namespace Microsoft::WRL::Wrappers;
 
 #define error(message) Logger::Log("WATCHER", 1, message)
 
+#define MAX_JSON_BUFFER_SIZE 512
+
+ComPtr<IBluetoothLEAdvertisementWatcher> _WATCHER;
+FILE* _FILEPTR;
+
  HRESULT Watcher::CallBackObject::AdvertisementRecived(IBluetoothLEAdvertisementWatcher* watcher, IBluetoothLEAdvertisementReceivedEventArgs* args)
  {
-     if (!Parser::Parser(args))
+     char buffer[MAX_JSON_BUFFER_SIZE];
+     memset(buffer, 0, MAX_JSON_BUFFER_SIZE);
+     if (!Parser::Parser(args, buffer, MAX_JSON_BUFFER_SIZE))
      {
          error("EventArgs no se ha podido parsear");
+     }
+     else {
+         fwrite(buffer, sizeof(char), strlen(buffer), _FILEPTR);
+         fprintf(_FILEPTR, "\n");
      }
      return S_OK;
  }
 
-int Watcher::StartWatcher()
+ void Watcher::Run(int miliseconds)
+ {
+     Watcher::CreateFileOutput();
+
+     Watcher::WatchADV(miliseconds);
+
+    if (_FILEPTR != NULL) fclose(_FILEPTR);
+ }
+
+ /// <summary>
+ /// crea/borra el archivo de la salida, antes de abrirlo comprueba
+ /// que no sea usado por otro programa y espera a que este finalice.
+ /// </summary>
+ void Watcher::CreateFileOutput()
+ {
+    fopen_s(&_FILEPTR, "ble.txt", "w");
+
+    while (_FILEPTR == NULL)
+    {
+        Sleep(1000);
+        fopen_s(&_FILEPTR, "ble.txt", "w");
+    }
+ }
+
+int Watcher::WatchADV(int timeToWatch)
 {
     EventRegistrationToken* watcherToken = new EventRegistrationToken();
     HRESULT hr;
@@ -48,7 +86,7 @@ int Watcher::StartWatcher()
         return -1;
     }
 
-    ComPtr<IBluetoothLEAdvertisementWatcher> bleWatcher;
+    //ComPtr<IBluetoothLEAdvertisementWatcher> bleWatcher;
     ComPtr<IBluetoothLEAdvertisementFilter> bleFilter;
 
     Wrappers::HStringReference class_id_filter(RuntimeClass_Windows_Devices_Bluetooth_Advertisement_BluetoothLEAdvertisementFilter);
@@ -59,8 +97,8 @@ int Watcher::StartWatcher()
         return -1;
     }
     
-    hr = bleAdvWatcherFactory->Create(bleFilter.Get(), bleWatcher.GetAddressOf());
-    if (bleWatcher == NULL || (FAILED(hr))) {
+    hr = bleAdvWatcherFactory->Create(bleFilter.Get(), _WATCHER.GetAddressOf());
+    if (_WATCHER == NULL || (FAILED(hr))) {
         error("Create Watcher error");
         return -1;
     }
@@ -76,15 +114,18 @@ int Watcher::StartWatcher()
             placeholders::_2
         ));
         
-    hr = bleWatcher->add_Received(handler.Get(), watcherToken);
+    hr = _WATCHER->add_Received(handler.Get(), watcherToken);
     if (FAILED(hr)) {
         error("Add received callback error");
         return -1;
     }
 
-    bleWatcher->Start();
+    _WATCHER->Start();
 
-    while (true) {
-        Sleep(1000);
-    }
+    // sleep main thread and let the callback running
+    Sleep(timeToWatch);
+
+    _WATCHER->Stop();
+
+    return true;
 }

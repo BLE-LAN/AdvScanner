@@ -8,5 +8,5 @@ using namespace ABI::Windows::Devices::Bluetooth::Advertisement;
 
 namespace Parser 
 {
-	bool Parser(IBluetoothLEAdvertisementReceivedEventArgs* args);
+	bool Parser(IBluetoothLEAdvertisementReceivedEventArgs* args, char* buffer, UINT32 size);
 }

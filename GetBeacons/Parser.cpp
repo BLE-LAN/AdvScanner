@@ -67,7 +67,7 @@ void addressParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& do
     addressGetBytesInBigEndian(bda, &bluetoothAddress);
 
     // Formar the string into a buffer
-    unsigned int size = sprintf_s(buf, sizeof(buf) / sizeof(buf[0]), "%02x:%02x:%02x:%02x:%02x:%02x", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
+    unsigned int size = sprintf_s(buf, sizeof(buf) / sizeof(buf[0]), "%02X:%02X:%02X:%02X:%02X:%02X", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
 
     Value v_address;
     v_address.SetString(buf, size, document.GetAllocator());
@@ -197,18 +197,17 @@ void unknowdataParse(
 
     ibuf->get_Length(&length);
 
-    printf("length -> %d", length);
+    //printf("length -> %d", length);
 
     for (UINT32 i = 0; i < length; ++i)
     {
-        sprintf_s(buff + (char)3 * i, sizeof(buff) - 3 * i, "%02x ", *(pdatabuf + i));
+        sprintf_s(buff + (char)3 * i, sizeof(buff) - 3 * i, "%02X ", *(pdatabuf + i));
     }
 
     //printf(" bytes -> %s", buff);
 
     // set raw value
     v_raw.SetString(buff, strlen(buff) - 1, document.GetAllocator());
-
 
     // add values in the object
     v_object.AddMember("type", v_type, document.GetAllocator());
@@ -236,7 +235,7 @@ void dataTypeParse(
     }
 }
 
-bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args) 
+bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args, char* jsonBuffer, UINT32 jsonBufferSize)
 {
     Document document;
     document.SetObject();
@@ -285,8 +284,14 @@ bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args)
 
     StringBuffer buffer;
     Writer<StringBuffer> writer(buffer);
+
     document.Accept(writer);
-    std::cout << "\n" << buffer.GetString() << std::endl;
+
+    const char* stringBufferPtr = buffer.GetString();
+    size_t bufferLen = buffer.GetLength();
+    memcpy_s(jsonBuffer, jsonBufferSize, stringBufferPtr, bufferLen+1);
+
+    printf("%s\n", jsonBuffer);
 
     return true;
 }
