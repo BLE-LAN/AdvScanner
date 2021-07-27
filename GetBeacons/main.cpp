@@ -15,10 +15,13 @@ struct Menu_Option
 
 void Process_Selection_One() 
 {
+    unsigned int watcherActive = 10 * 1000;
+    unsigned int waitForNextRun = 20 * 1000;
+
     while(true) 
     {
-        Watcher::Run(1000 * 10);
-        Sleep(1000 * 20);
+        Watcher::Run(watcherActive);
+        Sleep(waitForNextRun);
     }
 }
 
@@ -39,20 +42,20 @@ int main()
 
     std::cout
         << menu_title << "\n"
-        << "0. Quit \n";
+        << "0. Quit \n" << std::flush;
 
     for (size_t i = 0; i < quantity_selections; ++i)
     {
-        std::cout << main_menu[i].text << "\n";
+        std::cout << main_menu[i].text << "\n" << std::flush;
     }
 
-    std::cout << "\nEnter selection: ";
+    std::cout << "\nEnter selection: " << std::flush;
 
     unsigned int choice = 1;
 
     while (true)
     {
-        //std::cin >> choice;
+        std::cin >> choice;
 
         if (choice <= quantity_selections && choice >= 0) { break; }
 

@@ -22,7 +22,8 @@ using namespace ABI::Windows::Foundation;
 using namespace Microsoft::WRL;
 using namespace Microsoft::WRL::Wrappers;
 
-#define error(message) Logger::Log("WATCHER", 1, message)
+#define error(message) logError("WATCHER", message)
+#define info(message) logInfo("WATCHER", message)
 
 #define MAX_JSON_BUFFER_SIZE 512
 
@@ -46,11 +47,14 @@ FILE* _FILEPTR;
 
  void Watcher::Run(int miliseconds)
  {
-    Watcher::CreateFileOutput();
+     std::clog << "###################################\n";
+     info("Run()");
 
-    Watcher::WatchADV(miliseconds);
+     Watcher::CreateFileOutput();
 
-    if (_FILEPTR != NULL) fclose(_FILEPTR);
+     Watcher::WatchADV(miliseconds);
+
+     if (_FILEPTR != NULL) fclose(_FILEPTR);
  }
 
  /// <summary>
@@ -66,6 +70,8 @@ FILE* _FILEPTR;
         Sleep(1000);
         fopen_s(&_FILEPTR, "ble.txt", "w");
     }
+
+    info("output file is ready");
  }
 
 int Watcher::WatchADV(int timeToWatch)
@@ -121,11 +127,13 @@ int Watcher::WatchADV(int timeToWatch)
     }
 
     _WATCHER->Start();
-
+    info("watcher started");
+    
     // sleep main thread and let the callback running
     Sleep(timeToWatch);
 
     _WATCHER->Stop();
+    info("watcher stopped");
 
     return true;
 }
