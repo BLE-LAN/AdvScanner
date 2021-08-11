@@ -1,73 +1,40 @@
 
+#include <boost/program_options.hpp>
 
+#include <string>
 #include <iostream>
+#include <vector>
 
 #include "Watcher.h"
 
-#include <windows.h>
+namespace po = boost::program_options;
 
-struct Menu_Option
+int main(int argc, char* argv[]) 
 {
-    char choice;
-    std::string text;
-    void (*procesing_function)();
-};
+    // Arguments
+    unsigned int scantime;
+    std::string outputFile;
 
-void Process_Selection_One() 
-{
-    unsigned int watcherActive = 10 * 1000;
-    unsigned int waitForNextRun = 20 * 1000;
-
-    while(true) 
-    {
-        Watcher::Run(watcherActive);
-        Sleep(waitForNextRun);
-    }
-}
-
-int main()
-{
-    Menu_Option main_menu[] =
-    {
-      {'1', "1. Non stop", &Process_Selection_One},
-    };
-
-    size_t quantity_selections = sizeof(main_menu) / sizeof(main_menu[0]);
-
-    std::string menu_title =
-        "###############################\n"
-        "##         ADVtoJSON         ##\n"
-        "###############################\n"
+    // Options
+    po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help,h", "produce help message")
+        ("scantime,s", po::value<unsigned int>(&scantime)->default_value(40*1000), "time to find ADV packets in miliseconds")
+        ("output-file,o", po::value<std::string>(&outputFile)->default_value("ble.txt"), "output file path")
         ;
-
-    std::cout
-        << menu_title << "\n"
-        << "0. Quit \n" << std::flush;
-
-    for (size_t i = 0; i < quantity_selections; ++i)
+    
+    // Parse cli arguments
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
+    po::notify(vm);
+    
+    // Check if --help is used
+    if (vm.count("help"))
     {
-        std::cout << main_menu[i].text << "\n" << std::flush;
+        std::cerr << desc << "\n";
+        return 1;
     }
 
-    std::cout << "\nEnter selection: " << std::flush;
-
-    unsigned int choice = 1;
-
-    while (true)
-    {
-        std::cin >> choice;
-
-        if (choice <= quantity_selections && choice >= 0) { break; }
-
-        // cursor up and delete the line
-        std::cout << "\x1b[1A" << "\x1b[2K";
-        // cursor at the beginning of line
-        std::cout << '\r';
-        std::cout << "Enter a valid selection: ";
-    }
-
-    system("CLS");
-
-    void (*p_function)() = main_menu[choice - 1].procesing_function;
-    (p_function)();
+    // Start the scanner
+    Watcher::Run(scantime, outputFile);
 }

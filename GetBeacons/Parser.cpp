@@ -177,7 +177,7 @@ void unknowdataParse(
 
     dataSection->get_DataType(&datatype);
     memset(buff, 0, sizeof(buff));
-    sprintf_s(buff, sizeof(buff), "%d", datatype);
+    sprintf_s(buff, sizeof(buff), "%X", datatype);
     //printf("\nunknow %d -> ", datatype);
 
     // set datatype value in hex format

@@ -45,36 +45,25 @@ FILE* _FILEPTR;
      return S_OK;
  }
 
- void Watcher::Run(int miliseconds)
+ void Watcher::Run(unsigned int miliseconds, std::string outputFile)
  {
      std::clog << "###################################\n";
      info("Run()");
 
-     Watcher::CreateFileOutput();
+     fopen_s(&_FILEPTR, outputFile.c_str(), "w");
 
-     Watcher::WatchADV(miliseconds);
-
-     if (_FILEPTR != NULL) fclose(_FILEPTR);
+     if (_FILEPTR == NULL)
+     {
+         error("Cloud not open file '" + outputFile + "'");
+     }
+     else 
+     {
+         Watcher::WatchADV(miliseconds);
+         fclose(_FILEPTR);
+     }
  }
 
- /// <summary>
- /// crea/borra el archivo de la salida, antes de abrirlo comprueba
- /// que no sea usado por otro programa y espera a que este finalice.
- /// </summary>
- void Watcher::CreateFileOutput()
- {
-    fopen_s(&_FILEPTR, "ble.txt", "w");
-
-    while (_FILEPTR == NULL)
-    {
-        Sleep(1000);
-        fopen_s(&_FILEPTR, "ble.txt", "w");
-    }
-
-    info("output file is ready");
- }
-
-int Watcher::WatchADV(int timeToWatch)
+int Watcher::WatchADV(unsigned int timeToWatch)
 {
     EventRegistrationToken* watcherToken = new EventRegistrationToken();
     HRESULT hr;
