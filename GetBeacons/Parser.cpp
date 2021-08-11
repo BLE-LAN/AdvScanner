@@ -1,38 +1,21 @@
-/*
-    ##########################
-	## Parser de ADV a JSON
-    ## IBluetoothLEAdvertisementReceivedEventArgs => JSON
-    ##########################
 
-    IBluetoothLEAdvertisement Advertisement
-        DataTypes (los que se han podido testar)
-            flags                       0x01
-            16-bit UUIDs                0x03
-            Complete local name         0x09
-            Manufacturer Specific Data  0xFF
-*/
-
+#include "Parser.h"
+namespace Advertisement = ABI::Windows::Devices::Bluetooth::Advertisement;
 
 #include <iostream>
+
+#include "../rapidjson/include/rapidjson/document.h"
+#include "../rapidjson/include/rapidjson/writer.h"
+#include "../rapidjson/include/rapidjson/stringbuffer.h"
+namespace rj = rapidjson;
 
 #include <wrl/client.h>
 #include <wrl/wrappers/corewrappers.h>
 #include <hstring.h>
-
-#include "Parser.h"
-#include "../rapidjson/include/rapidjson/document.h"
-#include "../rapidjson/include/rapidjson/writer.h"
-#include "../rapidjson/include/rapidjson/stringbuffer.h"
-
 #include <windows.storage.h>
-#include <windows.storage.streams.h>
 #include <Robuffer.h>
-
-using namespace std;
 using namespace Microsoft::WRL;
-using namespace rapidjson;
-using namespace Microsoft::WRL::Wrappers;
-using namespace ABI::Windows::Storage::Streams;
+
 
 
 char _bluetoothLEAdvertisementStrings[6][27] = {
@@ -43,7 +26,6 @@ char _bluetoothLEAdvertisementStrings[6][27] = {
     "ScanResponse",
     "Extended"
 };
-
 
 
 void addressGetBytesInBigEndian(UINT8 bda[], UINT64* bluetoothAddress)
@@ -57,7 +39,10 @@ void addressGetBytesInBigEndian(UINT8 bda[], UINT64* bluetoothAddress)
     }
 }
 
-void addressParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& document) {
+void addressParse(
+    Advertisement::IBluetoothLEAdvertisementReceivedEventArgs* args, 
+    rj::Document& document) 
+{
     UINT64 bluetoothAddress;
     args->get_BluetoothAddress(&bluetoothAddress);
 
@@ -67,48 +52,57 @@ void addressParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& do
     addressGetBytesInBigEndian(bda, &bluetoothAddress);
 
     // Formar the string into a buffer
-    unsigned int size = sprintf_s(buf, sizeof(buf) / sizeof(buf[0]), "%02X:%02X:%02X:%02X:%02X:%02X", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
+    unsigned int size = sprintf_s(
+        buf, sizeof(buf) / sizeof(buf[0]), "%02X:%02X:%02X:%02X:%02X:%02X", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
 
-    Value v_address;
+    rj::Value v_address;
     v_address.SetString(buf, size, document.GetAllocator());
     document.AddMember("address", v_address, document.GetAllocator());
 }
 
-void adtypeParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& document){
-    BluetoothLEAdvertisementType advtype;
+void advtypeParse(
+    Advertisement::IBluetoothLEAdvertisementReceivedEventArgs* args, 
+    rj::Document& document)
+{
+    Advertisement::BluetoothLEAdvertisementType advtype;
     args->get_AdvertisementType(&advtype);
 
-    Value v_advtype;
+    rj::Value v_advtype;
     v_advtype.SetString(_bluetoothLEAdvertisementStrings[advtype], strlen(_bluetoothLEAdvertisementStrings[advtype]), document.GetAllocator());
     document.AddMember("advtype", v_advtype, document.GetAllocator());
 }
 
-void rawsignalParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& document) {
+void rawsignalParse(
+    Advertisement::IBluetoothLEAdvertisementReceivedEventArgs* args, 
+    rj::Document& document) 
+{
     INT16 dbm;
     args->get_RawSignalStrengthInDBm(&dbm);
 
-    Value v_dbm;
+    rj::Value v_dbm;
     v_dbm.SetInt(dbm);
     document.AddMember("RSSI", v_dbm, document.GetAllocator());
 }
 
-void timestampParse(IBluetoothLEAdvertisementReceivedEventArgs* args, Document& document) 
+void timestampParse(
+    Advertisement::IBluetoothLEAdvertisementReceivedEventArgs* args,
+    rj::Document& document)
 {
     time_t result = time(NULL);
     char dateBuff[26];
     ctime_s(dateBuff, sizeof dateBuff, &result);
 
-    Value v_timestamp;
+    rj::Value v_timestamp;
     // ctime_s add a '\n' at the of the string, thats the -1
     v_timestamp.SetString(dateBuff, strlen(dateBuff)-1, document.GetAllocator());
     document.AddMember("timestamp", v_timestamp, document.GetAllocator());
 }
 
 
-void localNameParse(ComPtr<IBluetoothLEAdvertisement> bleAdvert, Document& document)
+void localNameParse(ComPtr<Advertisement::IBluetoothLEAdvertisement> bleAdvert, rj::Document& document)
 {
     // Get Name of the device
-    HString name;
+    Microsoft::WRL::Wrappers::HString name;
     char buff_name[128] = { 0 };
     
     bleAdvert->get_LocalName(name.GetAddressOf());
@@ -116,13 +110,15 @@ void localNameParse(ComPtr<IBluetoothLEAdvertisement> bleAdvert, Document& docum
     if (wcslen(name.GetRawBuffer(nullptr)) != 0) {
         sprintf_s(buff_name, sizeof(buff_name), "%S", name.GetRawBuffer(nullptr));
 
-        Value v_localname;
+        rj::Value v_localname;
         v_localname.SetString(buff_name, strlen(buff_name), document.GetAllocator());
         document.AddMember("completename", v_localname, document.GetAllocator());
     }
 }
 
-void servicesuidParse(ComPtr<IBluetoothLEAdvertisement> bleAdvert, Document& document)
+void servicesuidParse(
+    ComPtr<Advertisement::IBluetoothLEAdvertisement> bleAdvert, 
+    rj::Document& document)
 {
     ComPtr<ABI::Windows::Foundation::Collections::IVector<GUID>> vecGuid;
     bleAdvert->get_ServiceUuids(&vecGuid);
@@ -133,8 +129,8 @@ void servicesuidParse(ComPtr<IBluetoothLEAdvertisement> bleAdvert, Document& doc
     if (guidCount == 0) { return; }
 
     char buff[256] = { 0 };
-    Value v_array(kArrayType);
-    Value v_guid(rapidjson::kStringType);
+    rj::Value v_array(rj::kArrayType);
+    rj::Value v_guid(rj::kStringType);
 
     for (unsigned int i = 0; i < guidCount; ++i)
     {
@@ -153,22 +149,16 @@ void servicesuidParse(ComPtr<IBluetoothLEAdvertisement> bleAdvert, Document& doc
 }
 
 /*
-    "unkowns":[
-        {
-            "type":"0x00",
-            “raw”:"57 01 02 ff"
-        },
-        ...
-    ]
+    "unknowns":[{"type":"0x00", “raw”:"57 01 02 ff"}, ...]
 */
 void unknowdataParse(
     ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> dataSection, 
-    Document& document,
-    rapidjson::Value& unkowns)
+    rj::Document& document,
+    rj::Value& unknowns)
 {
-    rapidjson::Value v_object(rapidjson::Type::kObjectType);
-    rapidjson::Value v_type(rapidjson::Type::kStringType);
-    rapidjson::Value v_raw(rapidjson::Type::kStringType);
+    rj::Value v_object(rj::Type::kObjectType);
+    rj::Value v_type(rj::Type::kStringType);
+    rj::Value v_raw(rj::Type::kStringType);
 
     char buff[256] = { 0 };
 
@@ -212,16 +202,15 @@ void unknowdataParse(
     // add values in the object
     v_object.AddMember("type", v_type, document.GetAllocator());
     v_object.AddMember("raw", v_raw, document.GetAllocator());
-    // push object
-    unkowns.PushBack(v_object, document.GetAllocator());
+    unknowns.PushBack(v_object, document.GetAllocator());
 }
 
 void dataTypeParse(
     BYTE& id, 
-    ComPtr<IBluetoothLEAdvertisement> bleAdvert, 
+    ComPtr<Advertisement::IBluetoothLEAdvertisement> bleAdvert,
     ComPtr<ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementDataSection> adData, 
-    Document& document,
-    rapidjson::Value& unkows)
+    rj::Document& document,
+    rj::Value& unkows)
 {
     switch(id){
     case 0x09:
@@ -235,17 +224,21 @@ void dataTypeParse(
     }
 }
 
-bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args, char* jsonBuffer, UINT32 jsonBufferSize)
+bool Parser::Parser(
+    Advertisement::IBluetoothLEAdvertisementReceivedEventArgs* args, 
+    char* jsonBuffer, 
+    UINT32 jsonBufferSize)
 {
-    Document document;
+    // This Document will store all the ADV
+    rj::Document document;
     document.SetObject();
 
     /*
-        Values not stored in the data section
+        Values that an ADV must have
     */
     addressParse(args, document);
 
-    adtypeParse(args, document);
+    advtypeParse(args, document);
 
     rawsignalParse(args, document);
 
@@ -254,17 +247,18 @@ bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args, char* json
     /*
         Data Section
     */
-    ComPtr<IBluetoothLEAdvertisement> bleAdvert;
+    // "args" parameter is a interface over the ADV, need the ADV to get the data section
+    ComPtr<Advertisement::IBluetoothLEAdvertisement> bleAdvert;
     args->get_Advertisement(&bleAdvert);
 
-    ComPtr <ABI::Windows::Foundation::Collections::IVector<ABI::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementDataSection*>> vecData;
+    ComPtr<ABI::Windows::Foundation::Collections::IVector<ABI::Windows::Devices::Bluetooth::Advertisement::BluetoothLEAdvertisementDataSection*>> vecData;
     bleAdvert->get_DataSections(&vecData);
 
     unsigned int countDataSections = 0;
     vecData->get_Size(&countDataSections);
 
     // unkown data types arrays
-    rapidjson::Value v_unknows(rapidjson::Type::kArrayType);
+    rj::Value v_unknows(rj::Type::kArrayType);
 
     for (unsigned int i = 0; i < countDataSections; ++i)
     {
@@ -279,11 +273,11 @@ bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args, char* json
         dataTypeParse(adType, bleAdvert, significantPart, document, v_unknows);
     }
 
-    // add unkowns array to the document
-    document.AddMember("unkowns", v_unknows, document.GetAllocator());
+    // add unknowns array to the document
+    document.AddMember("unknowns", v_unknows, document.GetAllocator());
 
-    StringBuffer buffer;
-    Writer<StringBuffer> writer(buffer);
+    rj::StringBuffer buffer;
+    rj::Writer<rj::StringBuffer> writer(buffer);
 
     document.Accept(writer);
 
@@ -295,13 +289,4 @@ bool Parser::Parser(IBluetoothLEAdvertisementReceivedEventArgs* args, char* json
 
     return true;
 }
-
-
-/* https://github.com/Infineon/btsdk-peer-apps-ble/blob/master/hello_sensor/Windows/HelloClient/DeviceSelectAdv.cpp
-void UuidToString(LPWSTR buffer, size_t buffer_size, GUID* uuid)
-{
-    _swprintf_p(buffer, buffer_size, L"{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}", uuid->Data1, uuid->Data2,
-        uuid->Data3, uuid->Data4[0], uuid->Data4[1], uuid->Data4[2], uuid->Data4[3],
-        uuid->Data4[4], uuid->Data4[5], uuid->Data4[6], uuid->Data4[7]);
-}*/
 

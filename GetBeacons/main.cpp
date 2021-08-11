@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
     if (vm.count("help"))
     {
         std::cerr << desc << "\n";
-        return 1;
+        return -1;
     }
 
     // Start the scanner
