@@ -24,6 +24,7 @@
     <ProjectGuid>{9342dbb8-ce23-4bd7-beb7-b497d2dbcc6c}</ProjectGuid>
     <RootNamespace>GetBeacons</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>AdvScanner</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

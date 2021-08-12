@@ -224,7 +224,7 @@ void dataTypeParse(
     }
 }
 
-bool Parser::Parser(
+bool Parser::Parse(
     Advertisement::IBluetoothLEAdvertisementReceivedEventArgs* args, 
     char* jsonBuffer, 
     UINT32 jsonBufferSize)

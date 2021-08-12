@@ -7,8 +7,9 @@
 
 namespace Parser
 {
-	bool Parser(
+	bool Parse(
 		ABI::Windows::Devices::Bluetooth::Advertisement::IBluetoothLEAdvertisementReceivedEventArgs* args, 
-		char* buffer, UINT32 size
+		char* buffer,
+		UINT32 size
 	);
 }

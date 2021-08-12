@@ -33,7 +33,7 @@ HRESULT Watcher::CallBackObject::AdvertisementRecived(
 {
     char buffer[MAX_JSON_BUFFER_SIZE];
     memset(buffer, 0, MAX_JSON_BUFFER_SIZE);
-    if (!Parser::Parser(args, buffer, MAX_JSON_BUFFER_SIZE))
+    if (!Parser::Parse(args, buffer, MAX_JSON_BUFFER_SIZE))
     {
         error("EventArgs no se ha podido parsear");
     }
