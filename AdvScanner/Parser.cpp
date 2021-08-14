@@ -81,7 +81,7 @@ void rawsignalParse(
 
     rj::Value v_dbm;
     v_dbm.SetInt(dbm);
-    document.AddMember("RSSI", v_dbm, document.GetAllocator());
+    document.AddMember("rssi", v_dbm, document.GetAllocator());
 }
 
 void timestampParse(
