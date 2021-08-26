@@ -1,3 +1,6 @@
 [submodule "rapidjson"]
 	path = rapidjson
 	url = https://github.com/Tencent/rapidjson
+[submodule "paramkit"]
+	path = paramkit
+	url = https://github.com/hasherezade/paramkit
