@@ -4,3 +4,4 @@
 [submodule "paramkit"]
 	path = paramkit
 	url = https://github.com/hasherezade/paramkit
+	ignore = dirty
