@@ -350,4 +350,5 @@ MigrationBackup/
 .ionide/
 
 # AdvScanner output files
-.txt
+*.txt
+paramkit/build
