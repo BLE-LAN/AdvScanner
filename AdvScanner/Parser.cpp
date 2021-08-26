@@ -285,7 +285,9 @@ bool Parser::Parse(
     size_t bufferLen = buffer.GetLength();
     memcpy_s(jsonBuffer, jsonBufferSize, stringBufferPtr, bufferLen+1);
 
+#if _DEBUG
     printf("%s\n", jsonBuffer);
+#endif
 
     return true;
 }
