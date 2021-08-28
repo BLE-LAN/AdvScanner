@@ -132,6 +132,8 @@ int Watcher::WatchADV(unsigned int timeToWatch)
         return -1;
     }
 
+    _WATCHER->put_ScanningMode(ABI::Windows::Devices::Bluetooth::Advertisement::BluetoothLEScanningMode_Active);
+
     _WATCHER->Start();
     info("watcher started");
     
